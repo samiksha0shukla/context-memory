@@ -1,5 +1,5 @@
 from __future__ import annotations
-from sqlalchemy import DateTime, ForeignKey, Enum, Integer, Text
+from sqlalchemy import DateTime, ForeignKey, Enum, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship 
 from datetime import datetime
 
@@ -30,8 +30,11 @@ class Message(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     conversation_id: Mapped[int] = mapped_column(Integer, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False)
     sender: Mapped[SenderEnum] = mapped_column(Enum(SenderEnum), nullable=False)
-    text: Mapped[str] = mapped_column(Text, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    message_text: Mapped[str] = mapped_column(Text, nullable=False)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"))
 
     #Relationship
     conversation = relationship("Conversation", back_populates="messages")
+
+
+    

@@ -23,4 +23,4 @@ class ConversationSummary(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
     #Relationship
-    conversation = relationship("Conversation", back_populates="conversation_summary")
+    conversation = relationship("Conversation", back_populates="summary")

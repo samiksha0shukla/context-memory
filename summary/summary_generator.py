@@ -75,7 +75,7 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     
     # Format msgs for LLM call 
     formatted_messages = [
-        f"{msg.sender.upper()} {msg.text}"
+        f"{msg.sender.upper()} {msg.message_text}"
         for msg in messages
     ]
 
@@ -93,19 +93,18 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     existing_summary = (
         db.query(ConversationSummary)
         .filter(ConversationSummary.conversation_id == conversation_id)
-        .one_or_none
+        .one_or_none()
     )
 
     if existing_summary:
-        ConversationSummary.summary_text = summary_text
-        ConversationSummary.updated_at = datetime.utcnow()
-
-    else: 
+        existing_summary.summary_text = summary_text
+        existing_summary.updated_at = datetime.utcnow()
+    else:
         db.add(
             ConversationSummary(
-                conversation_id = conversation_id,
-                summary_text = summary_text,
-                updated_at = datetime.utcnow()
+                conversation_id=conversation_id,
+                summary_text=summary_text,
+                updated_at=datetime.utcnow()
             )
         )
 
