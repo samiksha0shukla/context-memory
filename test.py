@@ -252,7 +252,7 @@ from sqlalchemy.orm import Session
 
 from db.database import create_table, SessionLocal
 from models.conversation import Conversation
-from contextmemory.memory import ContextMemory
+from src.contextmemory.memory.memory import ContextMemory
 
 openai_client = get_openai_client()
 

@@ -1,19 +1,20 @@
 from typing import List, Dict
 from sqlalchemy.orm import Session
+from src.contextmemory.db.database import SessionLocal
 
-from contextmemory.add.add_extraction_phase import extraction_phase
-from contextmemory.add.add_updation_phase import update_phase
+from src.contextmemory.memory.add.add_extraction_phase import extraction_phase
+from src.contextmemory.memory.add.add_updation_phase import update_phase
 
-from contextmemory.embeddings import embed_text
-from models.memory import Memory
-from contextmemory.similarity import cosine_similarity
+from src.contextmemory.memory.embeddings import embed_text
+from src.contextmemory.db.models.memory import Memory
+from src.contextmemory.memory.similarity import cosine_similarity
 
 from datetime import datetime
 
 
 class ContextMemory:
-    def __init__(self, db: Session):
-        self.db = db
+    def __init__(self, db: Session | None = None):
+        self.db = db or SessionLocal()
         
 
 

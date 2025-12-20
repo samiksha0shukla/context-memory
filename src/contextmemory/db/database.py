@@ -2,7 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base 
 
-from core.config import settings
+from src.contextmemory.core.config import settings
 
 engine = create_engine(
     settings.DATABASE_URL
@@ -25,5 +25,5 @@ def get_db():
 
 def create_table():
     #debug
-    import models
+    import src.contextmemory.db.models
     Base.metadata.create_all(bind=engine)

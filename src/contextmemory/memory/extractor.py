@@ -1,6 +1,6 @@
 from typing import List
-from core.openai_client import get_openai_client
-from utils.extraction_system_prompt import EXTRACTION_SYSTEM_PROMPT
+from src.contextmemory.core.openai_client import get_openai_client
+from src.contextmemory.utils.extraction_system_prompt import EXTRACTION_SYSTEM_PROMPT
 
 llm_client = get_openai_client()
 

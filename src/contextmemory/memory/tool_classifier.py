@@ -1,6 +1,6 @@
 from typing import List
-from core.openai_client import get_openai_client
-from utils.tool_call_system_prompt import TOOL_CALL_SYSTEM_PROMPT
+from src.contextmemory.core.openai_client import get_openai_client
+from src.contextmemory.utils.tool_call_system_prompt import TOOL_CALL_SYSTEM_PROMPT
 
 client = get_openai_client()
 

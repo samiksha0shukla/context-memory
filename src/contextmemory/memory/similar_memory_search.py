@@ -1,8 +1,8 @@
 from typing import List
 from sqlalchemy.orm import Session
 
-from models.memory import Memory
-from contextmemory.similarity import cosine_similarity
+from src.contextmemory.db.models.memory import Memory
+from src.contextmemory.memory.similarity import cosine_similarity
 
 def search_similar_memories(db: Session, conversation_id: int, query_embeddings: List[float], limit: int=10):
     """

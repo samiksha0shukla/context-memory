@@ -1,5 +1,5 @@
 # src/db/models/__init__.py
-from db.database import Base
+from src.contextmemory.db.database import Base
 from .conversation import Conversation
 from .message import Message, SenderEnum
 from .conversation_summary import ConversationSummary

@@ -13,9 +13,9 @@ import logging
 
 from sqlalchemy.orm import Session
 
-from core.config import settings
-from core.openai_client import get_openai_client
-from db.database import create_table, SessionLocal
+from src.contextmemory.core.config import settings
+from src.contextmemory.core.openai_client import get_openai_client
+from src.contextmemory.db.database import create_table, SessionLocal
 
 
 # Logging
@@ -91,11 +91,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-
-
-
-
-
-

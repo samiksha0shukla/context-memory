@@ -3,11 +3,11 @@ from typing import List
 from openai import OpenAI
 from sqlalchemy.orm import Session
 
-from models.conversation_summary import ConversationSummary
-from models.message import Message
+from src.contextmemory.db.models.conversation_summary import ConversationSummary
+from src.contextmemory.db.models.message import Message
 
-from core.openai_client import get_openai_client
-from utils.summary_generator_prompt import SUMMARY_GENERATOR_PROMPT
+from src.contextmemory.core.openai_client import get_openai_client
+from src.contextmemory.utils.summary_generator_prompt import SUMMARY_GENERATOR_PROMPT
 
 #LLM Client
 llm_client = get_openai_client()

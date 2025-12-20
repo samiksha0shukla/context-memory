@@ -1,5 +1,5 @@
 from typing import List
-from core.openai_client import get_openai_client
+from src.contextmemory.core.openai_client import get_openai_client
 
 client = get_openai_client()
 EMBEDDING_MODEL = "text-embedding-3-small"

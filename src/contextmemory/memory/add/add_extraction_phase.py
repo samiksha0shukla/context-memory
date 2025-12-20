@@ -2,10 +2,10 @@ from typing import List
 import json
 from sqlalchemy.orm import Session
 
-from models.message import Message, SenderEnum
-from models.conversation_summary import ConversationSummary
-from contextmemory.extractor import extract_memories
-from summary.summary_generator import generate_conversation_summary
+from src.contextmemory.db.models.message import Message, SenderEnum
+from src.contextmemory.db.models.conversation_summary import ConversationSummary
+from src.contextmemory.memory.extractor import extract_memories
+from src.contextmemory.summary.summary_generator import generate_conversation_summary
 
 def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     """

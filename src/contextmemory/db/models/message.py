@@ -3,7 +3,7 @@ from sqlalchemy import DateTime, ForeignKey, Enum, Integer, Text, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship 
 from datetime import datetime
 
-from db.database import Base
+from src.contextmemory.db.database import Base
 
 import enum
 
