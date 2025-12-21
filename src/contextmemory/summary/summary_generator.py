@@ -56,7 +56,7 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     )
 
     # Trigger condition:
-    if total_count == 0 or total_count % SUMMARY_TRIGGER_COUNT == 0:
+    if total_count == 0 or total_count % SUMMARY_TRIGGER_COUNT != 0:
         return ""
     
     
