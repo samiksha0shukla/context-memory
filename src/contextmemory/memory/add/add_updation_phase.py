@@ -3,10 +3,10 @@ from typing import List
 from datetime import datetime 
 from sqlalchemy.orm import Session
 
-from src.contextmemory.db.models.memory import Memory
-from src.contextmemory.memory.embeddings import embed_text
-from src.contextmemory.memory.similar_memory_search import search_similar_memories
-from src.contextmemory.memory.tool_classifier import llm_tool_call
+from contextmemory.db.models.memory import Memory
+from contextmemory.memory.embeddings import embed_text
+from contextmemory.memory.similar_memory_search import search_similar_memories
+from contextmemory.memory.tool_classifier import llm_tool_call
 
 def update_phase(db: Session, candidate_facts: List[str], conversation_id: int):
     """

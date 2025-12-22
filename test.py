@@ -247,11 +247,11 @@
 
 
 # for testing add and search method: 
-from core.openai_client import get_openai_client
+from src.contextmemory.core.openai_client import get_openai_client
 from sqlalchemy.orm import Session
 
-from db.database import create_table, SessionLocal
-from models.conversation import Conversation
+from src.contextmemory.db.database import create_table, SessionLocal
+from src.contextmemory.db.models.conversation import Conversation
 from src.contextmemory.memory.memory import ContextMemory
 
 openai_client = get_openai_client()

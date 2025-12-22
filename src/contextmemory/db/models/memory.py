@@ -6,7 +6,7 @@ from sqlalchemy import JSON as JSONType
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.contextmemory.db.database import Base
+from contextmemory.db.database import Base
 
 class Memory(Base):
     """

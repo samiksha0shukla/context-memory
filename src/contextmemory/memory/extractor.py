@@ -1,16 +1,15 @@
 from typing import List
-from src.contextmemory.core.openai_client import get_openai_client
-from src.contextmemory.utils.extraction_system_prompt import EXTRACTION_SYSTEM_PROMPT
-
-llm_client = get_openai_client()
+from contextmemory.core.openai_client import get_openai_client
+from contextmemory.utils.extraction_system_prompt import EXTRACTION_SYSTEM_PROMPT
 
 EXTRACTION_MODEL = "gpt-4o-mini"
 
 
 def extract_memories(latest_pair: List[str], summary_text: str, recent_messages: List[str]) -> List[str]:
     """
-    Use LLM to extract candidate important memory facts
+    Use LLM to extract candidate important memory facts.
     """
+    llm_client = get_openai_client()
 
     # List of string -> Single string
     recent_msgs_text = "\n".join(recent_messages)

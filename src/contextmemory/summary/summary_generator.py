@@ -3,14 +3,11 @@ from typing import List
 from openai import OpenAI
 from sqlalchemy.orm import Session
 
-from src.contextmemory.db.models.conversation_summary import ConversationSummary
-from src.contextmemory.db.models.message import Message
+from contextmemory.db.models.conversation_summary import ConversationSummary
+from contextmemory.db.models.message import Message
 
-from src.contextmemory.core.openai_client import get_openai_client
-from src.contextmemory.utils.summary_generator_prompt import SUMMARY_GENERATOR_PROMPT
-
-#LLM Client
-llm_client = get_openai_client()
+from contextmemory.core.openai_client import get_openai_client
+from contextmemory.utils.summary_generator_prompt import SUMMARY_GENERATOR_PROMPT
 
 #Config
 SUMMARY_MODEL = "gpt-4o-mini"
@@ -47,6 +44,7 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     """
     Generates and stores a summary for a conversation.
     """
+    llm_client = get_openai_client()
 
     # total count of msgs in the db
     total_count = (

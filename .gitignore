@@ -4,13 +4,39 @@ __pycache__/
 build/
 dist/
 wheels/
-*.egg-info
+*.egg-info/
 
 # Virtual environments
-venv
+venv/
+.venv/
 
-# .env file 
+# Environment files
 .env
+.env.local
 
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
 
+# OS
+.DS_Store
+Thumbs.db
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Build artifacts
+*.egg
+*.whl
+
+# Local test files
 text.py
+test.py
+
+
+CONFIGURATION_CHANGES.md
+PYPI_PACKAGE_CHANGES.md

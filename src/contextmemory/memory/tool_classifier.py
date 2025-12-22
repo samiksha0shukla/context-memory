@@ -1,8 +1,6 @@
 from typing import List
-from src.contextmemory.core.openai_client import get_openai_client
-from src.contextmemory.utils.tool_call_system_prompt import TOOL_CALL_SYSTEM_PROMPT
-
-client = get_openai_client()
+from contextmemory.core.openai_client import get_openai_client
+from contextmemory.utils.tool_call_system_prompt import TOOL_CALL_SYSTEM_PROMPT
 
 MODEL_NAME = "gpt-4o-mini"
 
@@ -68,8 +66,9 @@ def llm_tool_call(candidate_fact: str, similar_memories: List):
     """
     LLM decides which TOOL to call
     by taking one candidate fact and 10 similar memories 
-    that is, decides what to do with this candidate fact
+    that is, decides what to do with this candidate fact.
     """
+    client = get_openai_client()
     
     memory_context = "\n".join(
         f"-ID {m.id}: {m.memory_text}" for m in similar_memories
