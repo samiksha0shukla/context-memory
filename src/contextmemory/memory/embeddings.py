@@ -1,16 +1,12 @@
 from typing import List
-from contextmemory.core.openai_client import get_openai_client
-
-EMBEDDING_MODEL = "text-embedding-3-small"
+from contextmemory.core.llm_client import get_llm_provider
 
 
 def embed_text(text: str) -> List[float]:
     """
     Generate the embeddings of any text.
     """
-    client = get_openai_client()
-    response = client.embeddings.create(
-        model=EMBEDDING_MODEL,
-        input=text
-    )
-    return response.data[0].embedding
+    provider = get_llm_provider()
+    model = provider.get_default_embedding_model()
+    
+    return provider.create_embedding(model=model, text=text)

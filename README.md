@@ -14,10 +14,45 @@ pip install contextmemory
 
 ### 1. Configure
 
+ContextMemory supports multiple LLM providers:
+- **OpenAI** (default) - Requires `openai` package
+- **OpenRouter.ai** - Unified API for multiple models, requires `openai` package
+- **Google Gemini** - Requires `google-generativeai` package (install with `pip install contextmemory[gemini]`)
+
 **Environment Variables**
 ```bash
-export OPENAI_API_KEY="sk-..."
-export DATABASE_URL="postgresql://..."  # Optional
+# OpenAI (default)
+export PROVIDER="openai"
+export API_KEY="sk-..."  # or use OPENAI_API_KEY for backward compatibility
+
+# OpenRouter.ai
+export PROVIDER="openrouter"
+export API_KEY="sk-or-..."
+
+# Google Gemini
+export PROVIDER="gemini"
+export API_KEY="AIza..."
+
+# Optional
+export DATABASE_URL="postgresql://..."
+export BASE_URL="https://..."  # Custom base URL (for OpenRouter or proxies)
+```
+
+**Programmatic Configuration**
+```python
+from contextmemory import configure
+
+# OpenAI (default)
+configure(provider="openai", api_key="sk-...")
+
+# OpenRouter.ai
+configure(provider="openrouter", api_key="sk-or-...")
+
+# Google Gemini
+configure(provider="gemini", api_key="AIza...")
+
+# Legacy OpenAI (still supported)
+configure(openai_api_key="sk-...")  # Automatically uses OpenAI provider
 ```
 
 ### 2. Initialize Database
@@ -63,7 +98,7 @@ memory.delete(memory_id=1)
 ## Demonstration Code:
 
 ```python
-from openai import OpenAI
+from contextmemory.core.llm_client import get_llm_provider
 
 # ContextMemory imports
 from contextmemory import (
@@ -75,11 +110,14 @@ from contextmemory import (
 
 # CONFIGURATION
 
+# Configure provider (OpenAI, OpenRouter, or Gemini)
+configure(provider="openai", api_key="sk-...")  # or use environment variables
+
 # Create DB tables
 create_table()
 
-# OpenAI client
-openai_client = OpenAI()
+# Get LLM provider client
+llm_provider = get_llm_provider()
 
 # Database session + memory
 db = SessionLocal()
@@ -119,12 +157,12 @@ def chat_with_memories(
     ]
 
     # 3. Call LLM
-    response = openai_client.chat.completions.create(
-        model="gpt-4o-mini",
+    result = llm_provider.chat_completion(
+        model=llm_provider.get_default_chat_model(),
         messages=messages,
     )
 
-    assistant_response = response.choices[0].message.content
+    assistant_response = result["content"]
 
     # 4. Store memories from conversation
     messages.append(
@@ -167,6 +205,7 @@ if __name__ == "__main__":
 - **Automatic Memory Extraction**: Uses LLM to extract important facts from conversations
 - **Semantic Search**: Find relevant memories using embedding-based similarity
 - **Memory Deduplication**: Automatically updates or removes duplicate memories
+- **Multi-Provider Support**: Works with OpenAI, OpenRouter.ai, and Google Gemini
 - **Flexible Storage**: SQLite (default) or PostgreSQL
 - **Easy Configuration**: Programmatic or environment variable setup
 
@@ -174,9 +213,31 @@ if __name__ == "__main__":
 
 | Parameter | Required | Default | Description |
 |-----------|----------|---------|-------------|
-| `openai_api_key` | Yes | - | Your OpenAI API key |
+| `provider` | No | `"openai"` | LLM provider: `"openai"`, `"openrouter"`, or `"gemini"` |
+| `api_key` | Yes* | - | API key for the selected provider |
+| `openai_api_key` | Yes* | - | Legacy: OpenAI API key (sets provider to "openai") |
 | `database_url` | No | `~/.contextmemory/memory.db` | Database connection URL |
+| `base_url` | No | - | Custom base URL (useful for OpenRouter or proxies) |
 | `debug` | No | `False` | Enable debug logging |
+
+\* Either `api_key` or `openai_api_key` is required.
+
+### Provider-Specific Notes
+
+**OpenAI**
+- Default models: `gpt-4o-mini` (chat), `text-embedding-3-small` (embeddings)
+- No additional packages required
+
+**OpenRouter.ai**
+- Default models: `openai/gpt-4o-mini` (chat), `openai/text-embedding-3-small` (embeddings)
+- Supports any model available on OpenRouter
+- No additional packages required (uses OpenAI SDK)
+- Example: `configure(provider="openrouter", api_key="sk-or-...", base_url="https://openrouter.ai/api/v1")`
+
+**Google Gemini**
+- Default models: `gemini-1.5-flash` (chat), `models/text-embedding-004` (embeddings)
+- Requires: `pip install contextmemory[gemini]` or `pip install google-generativeai`
+- Example: `configure(provider="gemini", api_key="AIza...")`
 
 ## Database Support
 

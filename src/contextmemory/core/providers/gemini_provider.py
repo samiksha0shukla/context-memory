@@ -3,7 +3,11 @@ Google Gemini provider implementation.
 """
 
 from typing import List, Dict, Any, Optional
-import google.generativeai as genai
+import json
+try:
+    import google.generativeai as genai
+except ImportError:
+    genai = None
 
 from contextmemory.core.providers.base import BaseProvider
 
@@ -18,12 +22,17 @@ class GeminiProvider(BaseProvider):
         Args:
             api_key: Google AI API key (Gemini API key)
         """
+        if genai is None:
+            raise ImportError(
+                "google-generativeai package is required for Gemini provider. "
+                "Install it with: pip install google-generativeai"
+            )
         genai.configure(api_key=api_key)
         self.api_key = api_key
     
     def _convert_messages_to_gemini_format(
         self, messages: List[Dict[str, str]]
-    ) -> List[Dict[str, str]]:
+    ) -> tuple[List[Dict[str, str]], Optional[str]]:
         """
         Convert OpenAI-style messages to Gemini format.
         
@@ -46,25 +55,74 @@ class GeminiProvider(BaseProvider):
         
         return gemini_messages, "\n".join(system_parts) if system_parts else None
     
-    def _convert_tool_calls_to_gemini(
-        self, tool_calls: List[Dict[str, Any]]
-    ) -> Optional[Dict[str, Any]]:
+    def _convert_tools_to_gemini_format(
+        self, tools: Optional[List[Dict[str, Any]]]
+    ) -> Optional[List[Any]]:
         """
-        Convert OpenAI tool calls to Gemini function calling format.
+        Convert OpenAI tools format to Gemini function declarations.
         
-        Note: Gemini's function calling format is different from OpenAI.
-        This is a simplified conversion - full support may require more work.
+        Gemini uses a different format for function calling.
+        Note: This is a simplified implementation. Full function calling
+        support may require additional work depending on Gemini API version.
         """
-        if not tool_calls:
+        if not tools:
             return None
         
-        # For now, we'll extract the first tool call
-        # Full implementation would need to handle multiple tool calls
-        tool_call = tool_calls[0]
-        return {
-            "name": tool_call["function"]["name"],
-            "args": tool_call["function"]["arguments"],
+        try:
+            gemini_tools = []
+            for tool in tools:
+                if tool.get("type") == "function":
+                    func = tool.get("function", {})
+                    # Convert OpenAI function format to Gemini format
+                    gemini_tool = genai.protos.FunctionDeclaration(
+                        name=func.get("name"),
+                        description=func.get("description", ""),
+                        parameters=self._convert_schema_to_gemini(func.get("parameters", {})),
+                    )
+                    gemini_tools.append(genai.protos.Tool(function_declarations=[gemini_tool]))
+            
+            return gemini_tools if gemini_tools else None
+        except Exception:
+            # If conversion fails, return None (function calling won't work)
+            # This allows the provider to still work for non-function-calling use cases
+            return None
+    
+    def _convert_schema_to_gemini(self, schema: Dict[str, Any]) -> Any:
+        """Convert JSON schema to Gemini Schema format."""
+        # This is a simplified conversion
+        # Full implementation would need to handle all schema types
+        try:
+            properties = schema.get("properties", {})
+            required = schema.get("required", [])
+            
+            gemini_properties = {}
+            for prop_name, prop_schema in properties.items():
+                prop_type = prop_schema.get("type", "string")
+                gemini_properties[prop_name] = genai.protos.Schema(
+                    type_=self._map_type_to_gemini(prop_type),
+                    description=prop_schema.get("description", ""),
+                )
+            
+            return genai.protos.Schema(
+                type_=genai.protos.Type.OBJECT,
+                properties=gemini_properties,
+                required=required,
+            )
+        except Exception:
+            # Fallback to simple string schema if conversion fails
+            return genai.protos.Schema(type_=genai.protos.Type.STRING)
+    
+    def _map_type_to_gemini(self, json_type: str) -> Any:
+        """Map JSON schema type to Gemini Schema type."""
+        type_map = {
+            "string": genai.protos.Type.STRING,
+            "integer": genai.protos.Type.INTEGER,
+            "number": genai.protos.Type.NUMBER,
+            "boolean": genai.protos.Type.BOOLEAN,
+            "array": genai.protos.Type.ARRAY,
+            "object": genai.protos.Type.OBJECT,
         }
+        return type_map.get(json_type, genai.protos.Type.STRING)
     
     def chat_completion(
         self,
@@ -83,18 +141,22 @@ class GeminiProvider(BaseProvider):
         gemini_messages, system_instruction = self._convert_messages_to_gemini_format(messages)
         
         # Configure the model
+        genai_tools = self._convert_tools_to_gemini_format(tools)
+        
         genai_model = genai.GenerativeModel(
             model_name=model,
             system_instruction=system_instruction if system_instruction else None,
+            tools=genai_tools if genai_tools else None,
         )
         
-        # Convert tools to Gemini format if provided
+        # Configure generation
         generation_config = genai.types.GenerationConfig(
             temperature=temperature,
         )
         
-        # Start a chat session
-        chat = genai_model.start_chat(history=gemini_messages[:-1] if len(gemini_messages) > 1 else [])
+        # Start a chat session with history
+        history = gemini_messages[:-1] if len(gemini_messages) > 1 else []
+        chat = genai_model.start_chat(history=history)
         
         # Send the last message
         last_message = gemini_messages[-1]["parts"][0] if gemini_messages else ""
@@ -116,7 +178,7 @@ class GeminiProvider(BaseProvider):
                     "type": "function",
                     "function": {
                         "name": fc.name,
-                        "arguments": str(fc.args),
+                        "arguments": json.dumps(dict(fc.args)) if hasattr(fc.args, '__iter__') and not isinstance(fc.args, str) else str(fc.args),
                     },
                 }
                 for i, fc in enumerate(response.function_calls)
