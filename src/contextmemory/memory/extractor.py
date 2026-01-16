@@ -1,15 +1,22 @@
-from typing import List
-from contextmemory.core.openai_client import get_openai_client
+import json
+from typing import List, Dict, Any
+from contextmemory.core.openai_client import get_llm_client
+from contextmemory.core.settings import get_settings
 from contextmemory.utils.extraction_system_prompt import EXTRACTION_SYSTEM_PROMPT
 
-EXTRACTION_MODEL = "gpt-4o-mini"
 
-
-def extract_memories(latest_pair: List[str], summary_text: str, recent_messages: List[str]) -> List[str]:
+def extract_memories(latest_pair: List[str], summary_text: str, recent_messages: List[str]) -> Dict[str, Any]:
     """
-    Use LLM to extract candidate important memory facts.
+    Use LLM to extract candidate memory facts (semantic facts and bubbles).
+    
+    Returns:
+        {
+            "semantic": ["fact1", "fact2"],
+            "bubbles": [{"text": "...", "importance": 0.7}]
+        }
     """
-    llm_client = get_openai_client()
+    settings = get_settings()
+    llm_client = get_llm_client()
 
     # List of string -> Single string
     recent_msgs_text = "\n".join(recent_messages)
@@ -30,15 +37,32 @@ Recent Messages:
 Latest Interaction:
 {latest_pair_text}
 
-Extract memory facts.
+Extract memory facts (semantic facts and bubbles).
 """
         }
     ]
 
+    # Get model from settings (supports OpenRouter format like "openai/gpt-4o-mini")
+    model = settings.llm_model
+
     # LLM extracts memory facts 
     response = llm_client.chat.completions.create(
-        model=EXTRACTION_MODEL,
+        model=model,
         messages=messages,
         temperature=0.1
     )
-    return response.choices[0].message.content
+
+    raw_output = response.choices[0].message.content
+    
+    
+    # Parse JSON
+    try:
+        result = json.loads(raw_output)
+        # Validate structure
+        if "semantic" not in result:
+            result["semantic"] = []
+        if "bubbles" not in result:
+            result["bubbles"] = []
+        return result
+    except json.JSONDecodeError:
+        return {"semantic": [], "bubbles": []}

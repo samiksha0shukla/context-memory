@@ -9,7 +9,7 @@ from contextmemory.summary.summary_generator import generate_conversation_summar
 
 def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     """
-    Extraction phase of ContextMemory add()
+    Extraction phase of ContextMemory add() - extracts both semantic facts and episodic bubbles
     """
 
     # latest msg pair
@@ -46,17 +46,11 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     ]
 
     # Call extraction agent
-    raw_output = extract_memories(
+    extraction_result = extract_memories(
         latest_pair=latest_pair,
         summary_text=summary_text,
         recent_messages=recent_messages_formatted,
     )
-
-    # parse JSON string
-    try:
-        extracted_facts = json.loads(raw_output)
-    except Exception:
-        extracted_facts = []
 
 
     # add latest msg pair to the db
@@ -80,4 +74,8 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     generate_conversation_summary(db, conversation_id)
 
 
-    return extracted_facts
+    # Return both types
+    return {
+        "semantic": extraction_result.get("semantic", []),
+        "bubbles": extraction_result.get("bubbles", [])
+    }

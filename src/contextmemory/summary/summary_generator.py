@@ -1,18 +1,16 @@
 from datetime import datetime
 from typing import List
-from openai import OpenAI
 from sqlalchemy.orm import Session
 
 from contextmemory.db.models.conversation_summary import ConversationSummary
 from contextmemory.db.models.message import Message
 
-from contextmemory.core.openai_client import get_openai_client
+from contextmemory.core.openai_client import get_llm_client
+from contextmemory.core.settings import get_settings
 from contextmemory.utils.summary_generator_prompt import SUMMARY_GENERATOR_PROMPT
 
-#Config
-SUMMARY_MODEL = "gpt-4o-mini"
+# Config
 MAX_MESSAGES_FROM_SUMMARY = 200
-
 SUMMARY_TRIGGER_COUNT = 20
 
 
@@ -44,7 +42,8 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     """
     Generates and stores a summary for a conversation.
     """
-    llm_client = get_openai_client()
+    settings = get_settings()
+    llm_client = get_llm_client()
 
     # total count of msgs in the db
     total_count = (
@@ -80,7 +79,7 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
     prompt = generate_summary_prompt(formatted_messages)
 
     response = llm_client.chat.completions.create(
-        model=SUMMARY_MODEL,
+        model=settings.llm_model,
         messages=prompt,
         temperature=0.2
     )

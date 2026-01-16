@@ -37,6 +37,7 @@ htmlcov/
 text.py
 test.py
 
+# Reference files 
+md-files/
 
-CONFIGURATION_CHANGES.md
-PYPI_PACKAGE_CHANGES.md
+test_episodic.py

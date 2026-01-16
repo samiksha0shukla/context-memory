@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Optional, Dict, List
 from datetime import datetime
-from sqlalchemy import Text, Integer, DateTime, ForeignKey, String, text
+from sqlalchemy import Text, Integer, DateTime, ForeignKey, String, text, Boolean, Float
 from sqlalchemy import JSON as JSONType
 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -33,5 +33,29 @@ class Memory(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"))
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=text("CURRENT_TIMESTAMP"), onupdate=text("CURRENT_TIMESTAMP"))
 
+    #new addition 
+    is_episodic: Mapped[bool] = mapped_column(
+        Boolean, 
+        nullable=False, 
+        default=False
+    )
+    occurred_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime(timezone=True), 
+        nullable=True
+    )
+    session_id: Mapped[Optional[int]] = mapped_column(
+        Integer, 
+        nullable=True
+    )
+    importance: Mapped[float] = mapped_column(
+        Float, 
+        nullable=False, 
+        default=0.5
+    )
+    is_active: Mapped[bool] = mapped_column(
+        Boolean, 
+        nullable=False, 
+        default=True
+    )
     #Relationship
     conversation = relationship("Conversation", back_populates="memories")
