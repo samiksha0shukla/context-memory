@@ -1,5 +1,5 @@
 """
-Bubble Creator - Creates episodic memory bubbles and finds connections.
+Bubble Creator - Creates episodic memory bubbles.
 """
 
 from datetime import datetime, timezone
@@ -8,72 +8,8 @@ from sqlalchemy.orm import Session
 
 from contextmemory.db.models.memory import Memory
 from contextmemory.memory.embeddings import embed_text
-from contextmemory.memory.similarity import cosine_similarity
-
-# Configuration
-CONNECTION_THRESHOLD = 0.6
-MAX_CONNECTIONS = 5
-
-
-def find_connections(
-    db: Session,
-    new_bubble: Memory,
-    conversation_id: int
-) -> List[int]:
-    """
-    Find and store connections between new bubble and existing memories.
-    Returns list of connected memory IDs.
-    """
-    # Fetch all existing memories
-    existing = db.query(Memory).filter(
-        Memory.conversation_id == conversation_id,
-        Memory.id != new_bubble.id,
-        Memory.is_active == True
-    ).all()
-    
-    if not existing:
-        return []
-    
-    # Calculate similarities
-    scored = []
-    for mem in existing:
-        if mem.embedding:
-            score = cosine_similarity(new_bubble.embedding, mem.embedding)
-            if score >= CONNECTION_THRESHOLD:
-                scored.append({"id": mem.id, "score": round(score, 3)})
-    
-    # Sort and limit
-    scored.sort(key=lambda x: x["score"], reverse=True)
-    top_connections = scored[:MAX_CONNECTIONS]
-    
-    if not top_connections:
-        return []
-    
-    # Store in new bubble's metadata
-    connection_ids = [c["id"] for c in top_connections]
-    connection_scores = {str(c["id"]): c["score"] for c in top_connections}
-    
-    metadata = new_bubble.memory_metadata or {}
-    metadata["connections"] = {
-        "bubble_ids": connection_ids,
-        "scores": connection_scores
-    }
-    new_bubble.memory_metadata = metadata
-    
-    # Add reverse connections (bidirectional)
-    for conn in top_connections:
-        connected_mem = db.get(Memory, conn["id"])
-        if connected_mem:
-            cm_metadata = connected_mem.memory_metadata or {}
-            cm_connections = cm_metadata.get("connections", {"bubble_ids": [], "scores": {}})
-            
-            if new_bubble.id not in cm_connections["bubble_ids"]:
-                cm_connections["bubble_ids"].append(new_bubble.id)
-                cm_connections["scores"][str(new_bubble.id)] = conn["score"]
-                cm_metadata["connections"] = cm_connections
-                connected_mem.memory_metadata = cm_metadata
-    
-    return connection_ids
+from contextmemory.memory.connection_finder import find_connections
+from contextmemory.memory.vector_store import get_vector_store, save_vector_store
 
 
 def create_bubbles(
@@ -92,6 +28,7 @@ def create_bubbles(
         List of created Memory objects
     """
     created = []
+    vector_store = get_vector_store(conversation_id)
     
     for bubble_data in bubbles:
         text = bubble_data.get("text", "")
@@ -126,10 +63,16 @@ def create_bubbles(
         db.add(bubble)
         db.flush()  # Get ID before finding connections
         
-        # Find connections
+        # Add to FAISS index
+        vector_store.add(bubble.id, embedding)
+        
+        # Find connections (imported from connection_finder.py)
         find_connections(db, bubble, conversation_id)
         
         created.append(bubble)
+    
+    # Save FAISS index
+    save_vector_store(conversation_id)
     
     db.commit()
     return created

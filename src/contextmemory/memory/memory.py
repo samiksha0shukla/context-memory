@@ -8,8 +8,8 @@ from contextmemory.memory.add.add_updation_phase import update_phase
 
 from contextmemory.memory.embeddings import embed_text
 from contextmemory.db.models.memory import Memory
-from contextmemory.memory.similarity import cosine_similarity
 from contextmemory.memory.bubble_creator import create_bubbles
+from contextmemory.memory.vector_store import get_vector_store, rebuild_index_from_db, save_vector_store
 
 
 class ContextMemory:
@@ -68,49 +68,71 @@ class ContextMemory:
 
     # search()
     def search(self, query: str, conversation_id: int, limit: int = 10, include_connections: bool = True) -> Dict:
-
+        """
+        Search for relevant memories using FAISS.
+        
+        Args:
+            query: Search query text
+            conversation_id: Conversation to search
+            limit: Max results
+            include_connections: Include connected bubbles
+            
+        Returns:
+            Dict with query and results
+        """
         # Generate query embedding
         query_embedding = embed_text(query)
         
-        # Fetch all active memories
-        memories = (
-            self.db.query(Memory)
-            .filter(
-                Memory.conversation_id == conversation_id,
-                Memory.is_active == True
-            )
-            .all()
-        )
+        # Get FAISS index
+        vector_store = get_vector_store(conversation_id)
+        
+        # Rebuild if empty
+        if vector_store.count == 0:
+            vector_store = rebuild_index_from_db(self.db, conversation_id)
+        
+        # FAISS search (O(log n))
+        faiss_results = vector_store.search(query_embedding, k=limit * 2)
+        
+        if not faiss_results:
+            return {"query": query, "results": []}
+        
+        # Fetch Memory objects
+        memory_ids = [r["memory_id"] for r in faiss_results]
+        memories = self.db.query(Memory).filter(
+            Memory.id.in_(memory_ids),
+            Memory.is_active == True
+        ).all()
         
         if not memories:
             return {"query": query, "results": []}
         
-        # Score each memory
-        scored = []
+        # Create lookup
+        id_to_mem = {m.id: m for m in memories}
+        faiss_scores = {r["memory_id"]: r["score"] for r in faiss_results}
+        
+        # Score with recency and importance
         now = datetime.now(timezone.utc)
+        scored = []
         
         for mem in memories:
-            if not mem.embedding:
-                continue
-                
-            # Similarity
-            similarity = cosine_similarity(query_embedding, mem.embedding)
+            similarity = faiss_scores.get(mem.id, 0)
             
-            # Recency (for bubbles only)
+            # Recency decay for bubbles
             if mem.is_episodic and mem.occurred_at:
-                days_ago = (now - mem.occurred_at).days
+                # Handle timezone-naive occurred_at
+                occurred = mem.occurred_at
+                if occurred.tzinfo is None:
+                    occurred = occurred.replace(tzinfo=timezone.utc)
+                days_ago = (now - occurred).days
                 recency = math.exp(-0.05 * days_ago)
             else:
                 recency = 1.0
             
-            # Importance
             importance = mem.importance if mem.importance else 0.5
-            
-            # Final score
             final_score = similarity * importance * recency
             scored.append((final_score, mem))
         
-        # Sort by score
+        # Sort and limit
         scored.sort(key=lambda x: x[0], reverse=True)
         top_results = scored[:limit]
         
@@ -122,7 +144,7 @@ class ContextMemory:
             for _, mem in top_results:
                 if mem.memory_metadata and "connections" in mem.memory_metadata:
                     conn_ids = mem.memory_metadata["connections"].get("bubble_ids", [])
-                    for conn_id in conn_ids[:2]:  # Limit connections per memory
+                    for conn_id in conn_ids[:2]:
                         if conn_id not in result_ids:
                             conn_mem = self.db.get(Memory, conn_id)
                             if conn_mem and conn_mem.is_active:
@@ -131,7 +153,6 @@ class ContextMemory:
         
         # Format results
         results = []
-        
         for score, mem in top_results:
             results.append({
                 "memory_id": mem.id,
@@ -142,7 +163,7 @@ class ContextMemory:
                 "connections": (mem.memory_metadata or {}).get("connections", {}).get("bubble_ids", [])
             })
         
-        # Add connected (without score)
+        # Add connected
         for conn_mem in connected[:3]:
             results.append({
                 "memory_id": conn_mem.id,
@@ -169,14 +190,24 @@ class ContextMemory:
 
         memory = self.db.get(Memory, memory_id)
         if not memory: 
-            raise ValueError("Memory with {memory_id} not found")
+            raise ValueError(f"Memory with {memory_id} not found")
+        
+        # Get old embedding for removal
+        conversation_id = memory.conversation_id
         
         memory.memory_text = text
-        memory.embedding = embed_text(text)
+        new_embedding = embed_text(text)
+        memory.embedding = new_embedding
         memory.updated_at = datetime.now(timezone.utc)
 
         self.db.commit()
         self.db.refresh(memory)
+        
+        # Update FAISS index
+        vector_store = get_vector_store(conversation_id)
+        vector_store.remove(memory_id)
+        vector_store.add(memory_id, new_embedding)
+        save_vector_store(conversation_id)
 
         return memory
     
@@ -190,9 +221,17 @@ class ContextMemory:
 
         memory = self.db.get(Memory, memory_id)
         if not memory: 
-            raise ValueError("Memory with this {memory_id} not found")
+            raise ValueError(f"Memory with {memory_id} not found")
         
-        self.db.delete(memory)
+        conversation_id = memory.conversation_id
+        
+        # Soft delete - mark as inactive
+        memory.is_active = False
         self.db.commit()
+        
+        # Remove from FAISS index
+        vector_store = get_vector_store(conversation_id)
+        vector_store.remove(memory_id)
+        save_vector_store(conversation_id)
 
         return {"deleted_memory_id": memory_id}

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from sqlalchemy.orm import Session
 
@@ -94,13 +94,13 @@ def generate_conversation_summary(db: Session, conversation_id: str) -> str:
 
     if existing_summary:
         existing_summary.summary_text = summary_text
-        existing_summary.updated_at = datetime.utcnow()
+        existing_summary.updated_at = datetime.now(timezone.utc)
     else:
         db.add(
             ConversationSummary(
                 conversation_id=conversation_id,
                 summary_text=summary_text,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.now(timezone.utc)
             )
         )
 

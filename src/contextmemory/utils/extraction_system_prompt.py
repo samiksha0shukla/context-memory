@@ -82,16 +82,27 @@ SCORE 0.3-0.4 (LOW):
                             EXTRACTION RULES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-1. Extract ONLY from USER messages, never from assistant responses
-2. Each memory must be:
+CRITICAL SOURCE RULES:
+1. BUBBLES: Extract ONLY from "Latest Interaction" section
+   - NEVER extract bubbles from "Conversation Summary" or "Recent Messages"
+   - If something is in context but NOT in latest interaction, DO NOT create a bubble
+   - This prevents re-creating old bubbles
+   
+2. SEMANTIC: May extract from any section if confirmed in latest interaction
+   - Use summary/recent messages to verify stability
+   - But the fact must also appear in latest interaction
+
+GENERAL RULES:
+3. Extract ONLY from USER messages, never from assistant responses
+4. Each memory must be:
    - Atomic: One idea per memory
    - Concise: Single clear sentence
    - Third-person: "User..." format
-3. NO duplication: If something is semantic, don't also add as bubble
-4. NO hallucination: Only extract explicitly stated information
-5. NO merging: Keep facts separate, don't combine
-6. PREFER semantic over bubble when ambiguous
-7. Empty arrays are valid when nothing to extract
+5. NO duplication: If something is semantic, don't also add as bubble
+6. NO hallucination: Only extract explicitly stated information
+7. NO merging: Keep facts separate, don't combine
+8. PREFER semantic over bubble when ambiguous
+9. Empty arrays are valid when nothing to extract
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                             OUTPUT FORMAT (STRICT JSON)
@@ -328,15 +339,21 @@ WHY:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 You will receive:
-1. CONVERSATION SUMMARY — Compressed history (use for context)
-2. RECENT MESSAGES — Last 10 messages (broader context)
-3. LATEST INTERACTION — Most recent exchange (highest signal)
+1. CONVERSATION SUMMARY — Compressed history (background context only)
+2. RECENT MESSAGES — Last 10 messages (for reference only)
+3. LATEST INTERACTION — Most recent exchange (PRIMARY EXTRACTION SOURCE)
 
-Guidelines:
-- If something appears in summary AND latest interaction = stronger signal
-- Don't extract info already well-captured in summary (avoid redundancy)
-- Focus primarily on LATEST INTERACTION for bubbles
-- Use summary to confirm semantic facts are truly stable
+CRITICAL GUIDELINES:
+- BUBBLES: Extract ONLY from LATEST INTERACTION
+  → Summary and recent messages may contain OLD bubbles
+  → Do NOT re-extract them as new bubbles
+  → If it's not in the latest user message, don't create a bubble
+
+- SEMANTIC: Can confirm from any section, but must appear in latest interaction
+  → Use summary to verify a fact is stable (not one-time)
+  → Still require it to be mentioned in latest interaction
+
+- DEDUPLICATION: Don't extract info already well-captured in summary
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                             FINAL VERIFICATION

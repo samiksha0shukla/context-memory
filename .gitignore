@@ -41,3 +41,4 @@ test.py
 md-files/
 
 test_episodic.py
+test_timing.py
