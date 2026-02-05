@@ -26,6 +26,7 @@ psycopg2-binary==2.9.11
 pydantic==2.12.5
 pydantic_core==2.41.5
 Pygments==2.19.2
+pytest>=9.0.2
 pyproject_hooks==1.2.0
 python-dotenv==1.2.1
 readme_renderer==44.0
