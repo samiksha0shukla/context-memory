@@ -1,11 +1,12 @@
 from typing import List
-import json
+
 from sqlalchemy.orm import Session
 
-from contextmemory.db.models.message import Message, SenderEnum
 from contextmemory.db.models.conversation_summary import ConversationSummary
+from contextmemory.db.models.message import Message, SenderEnum
 from contextmemory.memory.extractor import extract_memories
 from contextmemory.summary.summary_generator import generate_conversation_summary
+
 
 def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     """
@@ -15,13 +16,13 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     # latest msg pair
     if len(messages) < 2:
         return {"semantic": [], "bubbles": []}
-    
+
     user_msg = messages[-2]
     assistant_msg = messages[-1]
 
     latest_pair = [
-        f"{user_msg['role'].upper()}: {user_msg['content']}"
-        f"{assistant_msg['role'].upper()}: {assistant_msg['content']}"
+        f"{user_msg['role'].upper()}: {user_msg['content']}",
+        f"{assistant_msg['role'].upper()}: {assistant_msg['content']}",
     ]
 
     # db extract latest summary
@@ -41,8 +42,7 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
         .all()
     )
     recent_messages_formatted = [
-        f"{msg.sender.upper()}: {msg.message_text}"
-        for msg in reversed(recent_messages)
+        f"{msg.sender.upper()}: {msg.message_text}" for msg in reversed(recent_messages)
     ]
 
     # Call extraction agent
@@ -51,7 +51,6 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
         summary_text=summary_text,
         recent_messages=recent_messages_formatted,
     )
-
 
     # add latest msg pair to the db
     db.add_all(
@@ -73,9 +72,8 @@ def extraction_phase(db: Session, messages: List[dict], conversation_id: int):
     # to check db to update summary
     generate_conversation_summary(db, conversation_id)
 
-
     # Return both types
     return {
         "semantic": extraction_result.get("semantic", []),
-        "bubbles": extraction_result.get("bubbles", [])
+        "bubbles": extraction_result.get("bubbles", []),
     }
